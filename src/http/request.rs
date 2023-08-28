@@ -8,9 +8,9 @@ use std::str;
 
 
 pub struct Request {
-    path: String,
+    pub path: String,
     query_string: Option<String>,
-    method: Method,
+    pub method: Method,
 }
 
 impl TryFrom<&[u8]> for Request {
@@ -32,22 +32,25 @@ impl TryFrom<&[u8]> for Request {
         let request = str::from_utf8(&buf).or(Err(ParseError::InvalidEncoding))?;
         
         let (method, request) = split_words(request).ok_or(ParseError::InvalidRequest)?; 
-        let (mut path, request) = split_words(request).ok_or(ParseError::InvalidRequest)?;
+        let (path, request) = split_words(request).ok_or(ParseError::InvalidRequest)?;
         let (protocol, _) = split_words(request).ok_or(ParseError::InvalidRequest)?; 
 
-        let _method: Method = method.parse()?;
+        let method: Method = method.parse()?;
 
         if protocol != "HTTP/1.1" {
             return Err(ParseError::InvalidProtocol);
         }
 
-        let mut query: Option<&str> = None;
+        let path = path.to_string();
+
+        let mut query: Option<String> = None;
         if let Some(i) = path.find('?') {
-            path = &path[..i]; 
-            query = Some(&path[i+1 ..]); 
+            let path = &path[..i].to_string(); 
+            query = Some(path[i+1 ..].to_string()); 
         }
         
-        unimplemented!()
+        Ok(Request { path: (path), query_string: (query), method: (method) })
+
     }
 }
 

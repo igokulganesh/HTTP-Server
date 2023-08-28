@@ -26,7 +26,9 @@ impl Server {
                         Ok(_) => {
                             println!("Received a request: {}", String::from_utf8_lossy(&buffer));
                             match Request::try_from(&buffer[..]) {
-                                Ok(_request) => {},
+                                Ok(request) => {
+                                    println!("{}", request.path);
+                                },
                                 Err(e) => println!("Failed to Parse the Request: {}", e),
                             }
 
