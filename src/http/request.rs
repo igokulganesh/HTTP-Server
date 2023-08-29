@@ -1,15 +1,17 @@
 pub use crate::http::request;
 
-use super::{Method, MethodError};
+use super::{Method, MethodError, QueryString};
+
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::{Display, Debug, Formatter, Result as FmtResult};
 use std::str;
 
 
+#[derive(Debug)]
 pub struct Request<'buf> {
     pub path: &'buf str,
-    pub query_string: Option<&'buf str>,
+    pub query_string: Option<QueryString<'buf>>,
     pub method: Method,
 }
 
@@ -41,10 +43,10 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf > {
             return Err(ParseError::InvalidProtocol);
         }
 
-        let mut query: Option<&str> = None;
+        let mut query: Option<QueryString> = None;
         if let Some(i) = path.find('?') {
+            query = Some(QueryString::from(&path[i+1..]));
             path = &path[..i]; 
-            query = Some(&path[i + 1 ..]); 
         }
         
         Ok(Request { path: (path), query_string: (query), method: (method) })
