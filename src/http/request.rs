@@ -1,4 +1,4 @@
-use crate::http::request;
+pub use crate::http::request;
 
 use super::{Method, MethodError};
 use std::convert::TryFrom;
@@ -7,17 +7,17 @@ use std::fmt::{Display, Debug, Formatter, Result as FmtResult};
 use std::str;
 
 
-pub struct Request {
-    pub path: String,
-    query_string: Option<String>,
+pub struct Request<'buf> {
+    pub path: &'buf str,
+    pub query_string: Option<&'buf str>,
     pub method: Method,
 }
 
-impl TryFrom<&[u8]> for Request {
+impl<'buf> TryFrom<&'buf [u8]> for Request<'buf > {
     type Error = ParseError;
 
     // GET /about?param1=name&param2=age HTTP/1.1 
-    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(buf: &'buf [u8]) -> Result<Request<'buf>, Self::Error> {
         /*         
         match str::from_utf8(&buf) {
             Ok(request) => {},
@@ -29,10 +29,10 @@ impl TryFrom<&[u8]> for Request {
             Err(e) => return Err(e),
         }
         */       
-        let request = str::from_utf8(&buf).or(Err(ParseError::InvalidEncoding))?;
+        let request = str::from_utf8(buf).or(Err(ParseError::InvalidEncoding))?;
         
         let (method, request) = split_words(request).ok_or(ParseError::InvalidRequest)?; 
-        let (path, request) = split_words(request).ok_or(ParseError::InvalidRequest)?;
+        let (mut path, request) = split_words(request).ok_or(ParseError::InvalidRequest)?;
         let (protocol, _) = split_words(request).ok_or(ParseError::InvalidRequest)?; 
 
         let method: Method = method.parse()?;
@@ -41,12 +41,10 @@ impl TryFrom<&[u8]> for Request {
             return Err(ParseError::InvalidProtocol);
         }
 
-        let path = path.to_string();
-
-        let mut query: Option<String> = None;
+        let mut query: Option<&str> = None;
         if let Some(i) = path.find('?') {
-            let path = &path[..i].to_string(); 
-            query = Some(path[i+1 ..].to_string()); 
+            path = &path[..i]; 
+            query = Some(&path[i + 1 ..]); 
         }
         
         Ok(Request { path: (path), query_string: (query), method: (method) })
@@ -57,7 +55,7 @@ impl TryFrom<&[u8]> for Request {
 // Split a String Slice into 2 slices first slice contains first word and rest of the str
 fn split_words(request: &str) -> Option<(&str, &str)> {
     for (i, val) in request.chars().enumerate() {
-        if val == ' ' || val == '\n' {
+        if val == ' ' || val == '\n' || val == '\r' {
             return Some((&request[..i], &request[i+1..]));
         }
     }
