@@ -27,7 +27,6 @@ impl<'buf> Request<'buf> {
     pub fn query_string(&self) -> Option<&QueryString> {
         self.query_string.as_ref()
     }
-
 }
 
 impl<'buf> TryFrom<&'buf [u8]> for Request<'buf > {
